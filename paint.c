@@ -1,10 +1,11 @@
 // #include <windows.h>
 #include <GL/glut.h>
 #include "screen_utils.h"
+#include "gl_utils.h"
 
 void init() {
     // Definindo cor de fundo
-    glClearColor(1, 1, 1, 0);
+    setClearColor255(40, 40, 40);
 
     // Vamos usar a projeção só para não utilizar a
     // padrão, pq ela não é intuitiva para o 2d
@@ -12,19 +13,47 @@ void init() {
     gluOrtho2D(0, 960, 0, 540);
 }
 
-void display() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    // desenhe aqui
-    
-    // acho legal fazer uma funçao para converter os valores. Ex: 1 = 255
-    glColor3f(1, 0, 0); 
+void menu() {
+
+    // retangulo do menu
+    setColor255(63, 63, 63); // Função criada para ficar mais intuitivo
     glBegin(GL_QUAD_STRIP);
         glVertex2f(0, 540);
         glVertex2f(960, 540);
         glVertex2f(0, 490);
         glVertex2f(960, 490);
     glEnd();
+
+    setColor255(255, 255, 255);    
+    for (int i = 0; i < 9; i++)
+    {
+        glBegin(GL_QUAD_STRIP);
+            glVertex2f(10 + (43 * i), 532);
+            glVertex2f(45 + (43 * i), 532);
+            glVertex2f(10 + (43 * i), 500);
+            glVertex2f(45 + (43 * i), 500);
+        glEnd();
+    }
+
+
+}
+
+void area_desenho() {
+    setColor255(255, 255, 255);
+    glBegin(GL_QUAD_STRIP);
+        glVertex2f(20, 480);
+        glVertex2f(940, 480);
+        glVertex2f(20, 10);
+        glVertex2f(940, 10);
+    glEnd();
+}
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    // desenhe aqui
+    menu();
+    area_desenho();
 
     glFlush();
 }
