@@ -1,12 +1,20 @@
 CC = gcc
-CFLAGS = -Wall -O2
-LDFLAGS = -lGL -lGLU -lglut
-
-SRC = paint.c gl_utils.c screen_utils.c
+SRC = *.c
 EXEC = paint
 
+# Detecta o sistema
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S), Linux)
+    FLAGS = -lGL -lGLU -lglut
+endif
+
+ifeq ($(OS), Windows_NT)
+    FLAGS = -lopengl32 -lglu32 -lfreeglut
+endif
+
 all:
-	$(CC) $(SRC) -o $(EXEC) $(CFLAGS) $(LDFLAGS)
+	$(CC) $(SRC) -o $(EXEC) $(FLAGS) && ./$(EXEC)
 
 clean:
 	rm -f $(EXEC)
