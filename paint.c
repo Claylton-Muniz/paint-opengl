@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "screen_utils.h"
 #include "gl_utils.h"
+#include "math.h"
 
 void init()
 {
@@ -27,12 +28,53 @@ void menu()
     setColor255(255, 255, 255);
     for (int i = 0; i < 9; i++)
     {
+
+        if((i == 0 && forma_atual == PONTO) ||
+            (i == 1 && forma_atual == QUADRADO) ||
+            (i == 2 && forma_atual == CIRCULO))
+            {
+                setColor255(255, 0, 0);
+            }
+            else {
+                setColor255(255, 255, 255);
+            }
+
         glBegin(GL_QUADS);
         glVertex2f(10 + (43 * i), 532);
         glVertex2f(45 + (43 * i), 532);
         glVertex2f(45 + (43 * i), 500);
         glVertex2f(10 + (43 * i), 500);
         glEnd();
+
+        float centroX = 27.5 + (43 * i);
+        float centroY = 516;
+
+        setColor255(0, 0, 0);
+
+        if(i == 0){
+            glPointSize(5.0);
+            glBegin(GL_POINTS);
+            glVertex2f(centroX, centroY);
+            glEnd();
+        } else if(i == 1){
+            glBegin(GL_QUADS);
+            glVertex2f(centroX - 10, centroY - 10);
+            glVertex2f(centroX + 10, centroY - 10);
+            glVertex2f(centroX + 10, centroY + 10);
+            glVertex2f(centroX - 10, centroY + 10);
+            glEnd();
+        } else if (i == 2){
+            glBegin(GL_TRIANGLE_FAN);
+            glVertex2f(centroX, centroY);
+            for(int j = 0; j >= 360; j++){
+                float degInRad = j * 3.14159 / 100;
+                glVertex2f(
+                    centroX + cos(degInRad) * 10,
+                    centroY + sin(degInRad) * 10
+                );
+            }
+            glEnd();
+        }
     }
 }
 

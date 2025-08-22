@@ -1,10 +1,15 @@
 #include <GL/glut.h>
 #include <math.h>
+#include <stdio.h>
+#include <gl_utils.h>
+
+Forma forma_atual = PONTO;
 
 // Estrutura para representar um objeto genérico
 typedef struct
 {
-    int tipo; // 0 para ponto, 1 para reta, 2 para polígono
+    Forma forma;
+    //int tipo; // 0 para ponto, 1 para reta, 2 para polígono
     float x, y;
     int selecionado;
 } Objeto;
@@ -12,6 +17,8 @@ typedef struct
 // Lista de objetos
 Objeto objetos[100];
 int num_objetos = 0;
+
+Forma forma_atual = PONTO; //variável global que guarda a forma a ser desenhada
 
 void setColor255(int r, int g, int b)
 {
@@ -36,11 +43,37 @@ void desenha_objetos()
             setColor255(0, 0, 0); // Preto para não selecionado
         }
 
-        // Por enquanto, desenhamos apenas pontos
-        glPointSize(10.0f);
-        glBegin(GL_POINTS);
-        glVertex2f(objetos[i].x, objetos[i].y);
-        glEnd();
+        switch(objetos[i].forma)
+        {
+            case PONTO:
+            glPointSize(10.0f);
+            glBegin(GL_POINTS);
+            glVertex2f(objetos[i].x, objetos[i].y);
+            glEnd();
+            break;
+
+            case QUADRADO:
+            glBegin(GL_QUADS);
+            glVertex2f(objetos[i].x - 15, objetos[i].y - 15);
+            glVertex2f(objetos[i].x + 15, objetos[i].y - 15);
+            glVertex2f(objetos[i].x + 15, objetos[i].y + 15);
+            glVertex2f(objetos[i].x - 15, objetos[i].y + 15);
+            glEnd();
+            break;
+
+            case CIRCULO:
+            glBegin(GL_TRIANGLE_FAN);
+            glVertex2f(objetos[i].x, objetos[i].y);
+            for(int j = 0; j<= 360; j++){
+                float degInRad = j * 3.14159 / 180;
+                glVertex2f(
+                    objetos[i].x + cos(degInRad) * 15,
+                    objetos[i].y + sin(degInRad) * 15
+                );
+            }
+            glEnd();
+            break;
+        }
     }
 }
 
@@ -48,6 +81,27 @@ void mouse(int button, int state, int x, int y)
 {
     // Inverte a coordenada Y, pois o OpenGL considera o canto inferior esquerdo como (0,0)
     y = 540 - y;
+
+    if(y > 490 && y < 540)
+    {
+        if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+        {
+            if (x >= 10 && x <= 45)
+            {
+                forma_atual = PONTO;
+                printf("TROCOU PARA PONTO");
+            }
+        } else if (x >= 53 && x <= 88)
+        {
+            forma_atual = QUADRADO;
+            printf("TROCOU PARA QUADRADO");
+
+        } else if (x >= 96 && x <= 131)
+        {
+            forma_atual = CIRCULO;
+            printf("TROCOU PARA CIRCULO");
+        }
+    }
 
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
     {
@@ -83,7 +137,8 @@ void mouse(int button, int state, int x, int y)
             {
                 objetos[num_objetos].x = x;
                 objetos[num_objetos].y = y;
-                objetos[num_objetos].tipo = 0; // Tipo Ponto
+                objetos[num_objetos].forma = forma_atual;
+                //objetos[num_objetos].tipo = 0; // Tipo Ponto
                 objetos[num_objetos].selecionado = 0;
                 num_objetos++;
             }
