@@ -1,6 +1,20 @@
 #ifndef GL_UTILS_H
 #define GL_UTILS_H
 
+typedef enum {
+    PONTO,
+    QUADRADO,
+    CIRCULO,
+    LINHA,
+    LINE_STRIP,
+    LINE_LOOP,
+    TRIANGLES,
+    POLYGON,
+    QUAD_STRIP
+} Forma;
+
+extern Forma forma_atual;
+
 // Declaração da função
 void setColor255(int r, int g, int b);
 void setClearColor255(int r, int g, int b);
