@@ -5,6 +5,12 @@ typedef enum {
     PONTO,
     QUADRADO,
     CIRCULO,
+    LINHA,
+    LINE_STRIP,
+    LINE_LOOP,
+    TRIANGLES,
+    POLYGON,
+    QUAD_STRIP
 } Forma;
 
 extern Forma forma_atual;
