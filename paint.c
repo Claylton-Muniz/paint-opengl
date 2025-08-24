@@ -1,9 +1,9 @@
-// #include <windows.h>
 #include <GL/glut.h>
 #include <stdio.h>
+#include <math.h>
 #include "screen_utils.h"
 #include "gl_utils.h"
-#include "math.h"
+#include "draw_utils.h"
 
 void init()
 {
@@ -174,6 +174,7 @@ int main(int argc, char **argv)
     glutDisplayFunc(display);
     glutMouseFunc(mouse);
     glutKeyboardFunc(keyboard);
+    glutSpecialFunc(keyboardSpecial);
     glutMainLoop();
     return 0;
 }

@@ -2,21 +2,12 @@
 #include <math.h>
 #include <stdio.h>
 #include "gl_utils.h"
+#include "transform_utils.h"
 
+// Definir as variáveis globais UMA ÚNICA VEZ
 Forma forma_atual = PONTO;
 int estado_multiclique = 0;
 float pontos_multiclique[20][2];
-
-// Estrutura para representar um objeto genérico
-typedef struct
-{
-    Forma forma;
-    float pontos[20][2]; // Armazena os pontos
-    int num_pontos;
-    int selecionado;
-} Objeto;
-
-// Lista de objetos
 Objeto objetos[100];
 int num_objetos = 0;
 
@@ -34,222 +25,6 @@ int forma_precisa_multiclique(Forma f)
 {
     return (f == LINHA || f == LINE_STRIP || f == LINE_LOOP ||
             f == TRIANGLES || f == POLYGON || f == QUAD_STRIP);
-}
-
-void desenha_objetos()
-{
-    // Desenha os objetos já salvos
-    for (int i = 0; i < num_objetos; i++)
-    {
-        if (objetos[i].selecionado)
-            setColor255(255, 0, 0); // vermelho se selecionado
-        else
-            setColor255(0, 0, 0); // preto normal
-
-        switch (objetos[i].forma)
-        {
-        case PONTO:
-            glPointSize(10.0f);
-            glBegin(GL_POINTS);
-            glVertex2f(objetos[i].pontos[0][0], objetos[i].pontos[0][1]);
-            glEnd();
-            break;
-
-        case QUADRADO:
-            glBegin(GL_QUADS);
-            glVertex2f(objetos[i].pontos[0][0] - 15, objetos[i].pontos[0][1] - 15);
-            glVertex2f(objetos[i].pontos[0][0] + 15, objetos[i].pontos[0][1] - 15);
-            glVertex2f(objetos[i].pontos[0][0] + 15, objetos[i].pontos[0][1] + 15);
-            glVertex2f(objetos[i].pontos[0][0] - 15, objetos[i].pontos[0][1] + 15);
-            glEnd();
-            break;
-
-        case CIRCULO:
-            glBegin(GL_TRIANGLE_FAN);
-            glVertex2f(objetos[i].pontos[0][0], objetos[i].pontos[0][1]);
-            for (int j = 0; j <= 360; j++)
-            {
-                float degInRad = j * 3.14159 / 180;
-                glVertex2f(
-                    objetos[i].pontos[0][0] + cos(degInRad) * 15,
-                    objetos[i].pontos[0][1] + sin(degInRad) * 15);
-            }
-            glEnd();
-            break;
-
-        case LINHA:
-            glBegin(GL_LINES);
-            for (int j = 0; j < objetos[i].num_pontos; j++)
-                glVertex2f(objetos[i].pontos[j][0], objetos[i].pontos[j][1]);
-            glEnd();
-            break;
-
-        case LINE_STRIP:
-            glBegin(GL_LINE_STRIP);
-            for (int j = 0; j < objetos[i].num_pontos; j++)
-                glVertex2f(objetos[i].pontos[j][0], objetos[i].pontos[j][1]);
-            glEnd();
-            break;
-
-        case LINE_LOOP:
-            glBegin(GL_LINE_LOOP);
-            for (int j = 0; j < objetos[i].num_pontos; j++)
-                glVertex2f(objetos[i].pontos[j][0], objetos[i].pontos[j][1]);
-            glEnd();
-            break;
-
-        case TRIANGLES:
-            glBegin(GL_TRIANGLES);
-            for (int j = 0; j < objetos[i].num_pontos; j++)
-                glVertex2f(objetos[i].pontos[j][0], objetos[i].pontos[j][1]);
-            glEnd();
-            break;
-
-        case POLYGON:
-            glBegin(GL_POLYGON);
-            for (int j = 0; j < objetos[i].num_pontos; j++)
-                glVertex2f(objetos[i].pontos[j][0], objetos[i].pontos[j][1]);
-            glEnd();
-            break;
-
-        case QUAD_STRIP:
-            glBegin(GL_QUAD_STRIP);
-            for (int j = 0; j < objetos[i].num_pontos; j++)
-                glVertex2f(objetos[i].pontos[j][0], objetos[i].pontos[j][1]);
-            glEnd();
-            break;
-        }
-    }
-
-    // Desenha a forma em pré-visualização
-    if (estado_multiclique > 0)
-    {
-        setColor255(0, 0, 150); // azul da pré-visualização
-
-        glBegin(GL_POINTS);
-        for (int i = 0; i < estado_multiclique; i++)
-        {
-            glVertex2f(pontos_multiclique[i][0], pontos_multiclique[i][1]);
-        }
-        glEnd();
-
-        switch (forma_atual)
-        {
-        case PONTO:
-            glPointSize(10.0f);
-            glBegin(GL_POINTS);
-            glVertex2f(pontos_multiclique[0][0], pontos_multiclique[0][1]);
-            glEnd();
-            break;
-
-        case QUADRADO:
-            glBegin(GL_QUADS);
-            glVertex2f(pontos_multiclique[0][0] - 15, pontos_multiclique[0][1] - 15);
-            glVertex2f(pontos_multiclique[0][0] + 15, pontos_multiclique[0][1] - 15);
-            glVertex2f(pontos_multiclique[0][0] + 15, pontos_multiclique[0][1] + 15);
-            glVertex2f(pontos_multiclique[0][0] - 15, pontos_multiclique[0][1] + 15);
-            glEnd();
-            break;
-
-        case CIRCULO:
-            glBegin(GL_TRIANGLE_FAN);
-            glVertex2f(pontos_multiclique[0][0], pontos_multiclique[0][1]);
-            for (int j = 0; j <= 360; j++)
-            {
-                float degInRad = j * 3.14159 / 180;
-                glVertex2f(
-                    pontos_multiclique[0][0] + cos(degInRad) * 15,
-                    pontos_multiclique[0][1] + sin(degInRad) * 15);
-            }
-            glEnd();
-            break;
-
-        case LINHA:
-            glBegin(GL_LINES);
-            for (int i = 0; i < estado_multiclique; i++)
-                glVertex2f(pontos_multiclique[i][0], pontos_multiclique[i][1]);
-            glEnd();
-            break;
-
-        case LINE_STRIP:
-            glBegin(GL_LINE_STRIP);
-            for (int i = 0; i < estado_multiclique; i++)
-                glVertex2f(pontos_multiclique[i][0], pontos_multiclique[i][1]);
-            glEnd();
-            break;
-
-        case LINE_LOOP:
-            glBegin(GL_LINE_LOOP);
-            for (int i = 0; i < estado_multiclique; i++)
-                glVertex2f(pontos_multiclique[i][0], pontos_multiclique[i][1]);
-            glEnd();
-            break;
-
-        case TRIANGLES:
-            glBegin(GL_TRIANGLES);
-            for (int i = 0; i < estado_multiclique; i++)
-                glVertex2f(pontos_multiclique[i][0], pontos_multiclique[i][1]);
-            glEnd();
-            break;
-
-        case POLYGON:
-            glBegin(GL_POLYGON);
-            for (int i = 0; i < estado_multiclique; i++)
-                glVertex2f(pontos_multiclique[i][0], pontos_multiclique[i][1]);
-            glEnd();
-            break;
-
-        case QUAD_STRIP:
-            glBegin(GL_QUAD_STRIP);
-            for (int i = 0; i < estado_multiclique; i++)
-                glVertex2f(pontos_multiclique[i][0], pontos_multiclique[i][1]);
-            glEnd();
-            break;
-        }
-    }
-}
-
-float distancia_ponto_segmento(float px, float py,
-                               float x1, float y1,
-                               float x2, float y2)
-{
-    float dx = x2 - x1;
-    float dy = y2 - y1;
-    if (dx == 0 && dy == 0)
-    { // segmento degenerado
-        dx = px - x1;
-        dy = py - y1;
-        return sqrt(dx * dx + dy * dy);
-    }
-
-    float t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-    if (t < 0)
-        t = 0;
-    else if (t > 1)
-        t = 1;
-
-    float projx = x1 + t * dx;
-    float projy = y1 + t * dy;
-
-    dx = px - projx;
-    dy = py - projy;
-    return sqrt(dx * dx + dy * dy);
-}
-
-int ponto_dentro_poligono(float px, float py, Objeto obj)
-{
-    int dentro = 0;
-    for (int i = 0, j = obj.num_pontos - 1; i < obj.num_pontos; j = i++)
-    {
-        float xi = obj.pontos[i][0], yi = obj.pontos[i][1];
-        float xj = obj.pontos[j][0], yj = obj.pontos[j][1];
-
-        int intersect = ((yi > py) != (yj > py)) &&
-                        (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
-        if (intersect)
-            dentro = !dentro;
-    }
-    return dentro;
 }
 
 void mouse(int button, int state, int x, int y)
@@ -344,7 +119,7 @@ void mouse(int button, int state, int x, int y)
                         }
                     }
 
-                    // para o LINE_LOOP, liga último ao primeiro - visualmente ele já fazia isso, 
+                    // para o LINE_LOOP, liga último ao primeiro - visualmente ele já fazia isso,
                     // mas para o nosso objeto não então não podiamos selecionar de todos os lados
                     if (objetos[i].forma == LINE_LOOP)
                     {
@@ -447,5 +222,175 @@ void keyboard(unsigned char key, int x, int y)
             num_objetos--;
             glutPostRedisplay();
         }
+    }
+    else if (key == 'r' || key == 'R') // Adicione esta parte para rotação
+    {
+        // Rotaciona objeto selecionado em 15 graus
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                rotacionar(&objetos[i], -5.0f); // Rotaciona 15 graus
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+    else if (key == 'e' || key == 'E') // Adicione esta parte para rotação
+    {
+        // Rotaciona objeto selecionado em 15 graus
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                rotacionar(&objetos[i], 5.0f); // Rotaciona 15 graus
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+    else if (key == '+' || key == '=') // Tecla '+' (normalmente shift+='+')
+    {
+        // Aumenta a escala do objeto selecionado (aumenta 10% em ambas as direções)
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                escalar(&objetos[i], 1.1f, 1.1f); // Aumenta 10%
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+    else if (key == '-' || key == '_') // Tecla '-' (normalmente shift+'-'='_')
+    {
+        // Reduz a escala do objeto selecionado (reduz 10% em ambas as direções)
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                escalar(&objetos[i], 0.9f, 0.9f); // Reduz 10%
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+    else if (key == 'x' || key == 'X') // Reflexão em X
+    {
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                refletirX(&objetos[i]);
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+    else if (key == 'y' || key == 'Y') // Reflexão em Y
+    {
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                refletirY(&objetos[i]);
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+    else if (key == 'o' || key == 'O') // Reflexão na origem
+    {
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                refletirOrigem(&objetos[i]);
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+    else if (key == 'h' || key == 'H') // Cisalhamento em X
+    {
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                cisalharX(&objetos[i], 0.2f); // Cisalhamento de 0.2 em X
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+    else if (key == 'v' || key == 'V') // Cisalhamento em Y
+    {
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                cisalharY(&objetos[i], 0.2f); // Cisalhamento de 0.2 em Y
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
+}
+
+void keyboardSpecial(int key, int x, int y)
+{
+    switch (key)
+    {
+    case GLUT_KEY_UP:
+        // Move objeto selecionado para cima (5 pixels)
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                transladar(&objetos[i], 0, 5); // Só move no eixo Y (para cima)
+                glutPostRedisplay();
+                break;
+            }
+        }
+        break;
+
+    case GLUT_KEY_DOWN:
+        // Move objeto selecionado para baixo (5 pixels)
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                transladar(&objetos[i], 0, -5); // Só move no eixo Y (para baixo)
+                glutPostRedisplay();
+                break;
+            }
+        }
+        break;
+
+    case GLUT_KEY_LEFT:
+        // Move objeto selecionado para esquerda (5 pixels)
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                transladar(&objetos[i], -5, 0); // Só move no eixo X (para esquerda)
+                glutPostRedisplay();
+                break;
+            }
+        }
+        break;
+
+    case GLUT_KEY_RIGHT:
+        // Move objeto selecionado para direita (5 pixels)
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado)
+            {
+                transladar(&objetos[i], 5, 0); // Só move no eixo X (para direita)
+                glutPostRedisplay();
+                break;
+            }
+        }
+        break;
     }
 }
