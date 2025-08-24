@@ -1,10 +1,13 @@
 #include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 #include "gl_utils.h"
 #include "transform_utils.h"
+#include "file_utils.h"
+#include "animation_utils.h"
 
-// Definir as variáveis globais UMA ÚNICA VEZ
+// variáveis globais
 Forma forma_atual = PONTO;
 int estado_multiclique = 0;
 float pontos_multiclique[20][2];
@@ -177,6 +180,8 @@ void mouse(int button, int state, int x, int y)
 
 void keyboard(unsigned char key, int x, int y)
 {
+    char nome_arq[15] = "";
+
     if (key == 13) // Enter
     {
         if (estado_multiclique > 0)
@@ -225,12 +230,12 @@ void keyboard(unsigned char key, int x, int y)
     }
     else if (key == 'r' || key == 'R') // Adicione esta parte para rotação
     {
-        // Rotaciona objeto selecionado em 15 graus
+        // Rotaciona objeto
         for (int i = 0; i < num_objetos; i++)
         {
             if (objetos[i].selecionado)
             {
-                rotacionar(&objetos[i], -5.0f); // Rotaciona 15 graus
+                rotacionar(&objetos[i], -5.0f);
                 glutPostRedisplay();
                 break;
             }
@@ -238,20 +243,20 @@ void keyboard(unsigned char key, int x, int y)
     }
     else if (key == 'e' || key == 'E') // Adicione esta parte para rotação
     {
-        // Rotaciona objeto selecionado em 15 graus
+        // Rotaciona objeto
         for (int i = 0; i < num_objetos; i++)
         {
             if (objetos[i].selecionado)
             {
-                rotacionar(&objetos[i], 5.0f); // Rotaciona 15 graus
+                rotacionar(&objetos[i], 5.0f);
                 glutPostRedisplay();
                 break;
             }
         }
     }
-    else if (key == '+' || key == '=') // Tecla '+' (normalmente shift+='+')
+    else if (key == '+' || key == '=') // Tecla '+'
     {
-        // Aumenta a escala do objeto selecionado (aumenta 10% em ambas as direções)
+        // Aumenta a escala do objeto selecionado
         for (int i = 0; i < num_objetos; i++)
         {
             if (objetos[i].selecionado)
@@ -262,9 +267,9 @@ void keyboard(unsigned char key, int x, int y)
             }
         }
     }
-    else if (key == '-' || key == '_') // Tecla '-' (normalmente shift+'-'='_')
+    else if (key == '-' || key == '_') // Tecla '-'
     {
-        // Reduz a escala do objeto selecionado (reduz 10% em ambas as direções)
+        // Reduz a escala do objeto selecionado
         for (int i = 0; i < num_objetos; i++)
         {
             if (objetos[i].selecionado)
@@ -335,6 +340,32 @@ void keyboard(unsigned char key, int x, int y)
             }
         }
     }
+    else if (key == 's' || key == 'S') // Tecla 'S' para salvar
+    {
+        printf("Nome do arq: ");
+        scanf("%s", nome_arq);
+        strcat(nome_arq, ".txt");
+        salvar_objetos(nome_arq);
+        glutPostRedisplay();
+    }
+    else if (key == 'l' || key == 'L') // Tecla 'L' para carregar
+    { 
+        printf("Nome do arq: ");
+        scanf("%s", nome_arq);
+        strcat(nome_arq, ".txt");
+        carregar_objetos(nome_arq);
+        glutPostRedisplay();
+    }
+    else if (key == 'a' || key == 'A') { // Tecla 'A' para iniciar/parar animação
+        if (animacao_ativa()) {
+            parar_animacao();
+            printf("Animação parada\n");
+        } else {
+            iniciar_animacao();
+            printf("Animação iniciada\n");
+        }
+        glutPostRedisplay();
+    }
 }
 
 void keyboardSpecial(int key, int x, int y)
@@ -342,12 +373,12 @@ void keyboardSpecial(int key, int x, int y)
     switch (key)
     {
     case GLUT_KEY_UP:
-        // Move objeto selecionado para cima (5 pixels)
+        // Move objeto selecionado para cima
         for (int i = 0; i < num_objetos; i++)
         {
             if (objetos[i].selecionado)
             {
-                transladar(&objetos[i], 0, 5); // Só move no eixo Y (para cima)
+                transladar(&objetos[i], 0, 5);
                 glutPostRedisplay();
                 break;
             }
@@ -355,12 +386,12 @@ void keyboardSpecial(int key, int x, int y)
         break;
 
     case GLUT_KEY_DOWN:
-        // Move objeto selecionado para baixo (5 pixels)
+        // Move objeto selecionado para baixo
         for (int i = 0; i < num_objetos; i++)
         {
             if (objetos[i].selecionado)
             {
-                transladar(&objetos[i], 0, -5); // Só move no eixo Y (para baixo)
+                transladar(&objetos[i], 0, -5);
                 glutPostRedisplay();
                 break;
             }
@@ -368,12 +399,12 @@ void keyboardSpecial(int key, int x, int y)
         break;
 
     case GLUT_KEY_LEFT:
-        // Move objeto selecionado para esquerda (5 pixels)
+        // Move objeto selecionado para esquerda
         for (int i = 0; i < num_objetos; i++)
         {
             if (objetos[i].selecionado)
             {
-                transladar(&objetos[i], -5, 0); // Só move no eixo X (para esquerda)
+                transladar(&objetos[i], -5, 0);
                 glutPostRedisplay();
                 break;
             }
@@ -381,12 +412,12 @@ void keyboardSpecial(int key, int x, int y)
         break;
 
     case GLUT_KEY_RIGHT:
-        // Move objeto selecionado para direita (5 pixels)
+        // Move objeto selecionado para direita
         for (int i = 0; i < num_objetos; i++)
         {
             if (objetos[i].selecionado)
             {
-                transladar(&objetos[i], 5, 0); // Só move no eixo X (para direita)
+                transladar(&objetos[i], 5, 0);
                 glutPostRedisplay();
                 break;
             }

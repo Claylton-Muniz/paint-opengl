@@ -38,7 +38,7 @@ Ponto calcularCentro(const Objeto *obj) {
     return c;
 }
 
-// Rotaciona um objeto pelo ângulo especificado (em graus)
+// Rotaciona um objeto pelo ângulo especificado
 void rotacionar(Objeto *obj, float angulo) {
     Ponto c = calcularCentro(obj);
     float rad = angulo * PI / 180.0;
