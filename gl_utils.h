@@ -13,11 +13,10 @@ typedef enum {
     QUAD_STRIP
 } Forma;
 
-// Estrutura para representar um objeto genérico
 typedef struct
 {
     Forma forma;
-    float pontos[20][2]; // Armazena os pontos
+    float pontos[20][2];
     int num_pontos;
     int selecionado;
 } Objeto;
@@ -28,9 +27,10 @@ void setClearColor255(int r, int g, int b);
 void mouse(int button, int state, int x, int y);
 void keyboard(unsigned char key, int x, int y);
 int forma_precisa_multiclique(Forma f);
-float distancia_ponto_segmento(float px, float py, float x1, float y1, float x2, float y2);
-int ponto_dentro_poligono(float px, float py, Objeto obj);
 void keyboardSpecial(int key, int x, int y);
+int pickPonto(float px, float py, float mx, float my, float tolerancia);
+int pickLinha(float x1, float y1, float x2, float y2, float mx, float my, float tolerancia);
+int pontoDentroPoligono(float px, float py, Objeto obj);
 
 // Declarações externas das variáveis globais
 extern Forma forma_atual;

@@ -162,3 +162,5 @@ void cisalharY(Objeto *obj, float shy) {
     aplicarMatrizObjeto(obj, Shy);     // Cisalhamento em Y
     aplicarMatrizObjeto(obj, Tvolta);  // Move de volta
 }
+
+

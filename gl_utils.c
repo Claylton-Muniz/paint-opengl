@@ -33,6 +33,7 @@ int forma_precisa_multiclique(Forma f)
 void mouse(int button, int state, int x, int y)
 {
     y = 540 - y;
+    float tolerancia = 5.0f;
 
     // Clique no menu de seleção
     if (y > 490 && y < 540)
@@ -76,73 +77,68 @@ void mouse(int button, int state, int x, int y)
             {
                 if (objetos[i].forma == PONTO)
                 {
-                    float dist = sqrt(pow(objetos[i].pontos[0][0] - x, 2) +
-                                      pow(objetos[i].pontos[0][1] - y, 2));
-                    if (dist < 10.0f)
-                    { // tolerância
-                        objeto_selecionado = i;
-                        break;
-                    }
-                }
-
-                else if (objetos[i].forma == CIRCULO)
-                {
-                    float dx = x - objetos[i].pontos[0][0];
-                    float dy = y - objetos[i].pontos[0][1];
-                    if (sqrt(dx * dx + dy * dy) <= 15)
-                    { // raio
-                        objeto_selecionado = i;
-                        break;
-                    }
-                }
-
-                else if (objetos[i].forma == QUADRADO)
-                {
-                    float cx = objetos[i].pontos[0][0];
-                    float cy = objetos[i].pontos[0][1];
-                    if (x >= cx - 15 && x <= cx + 15 && y >= cy - 15 && y <= cy + 15)
+                    if (pickPonto(objetos[i].pontos[0][0], objetos[i].pontos[0][1],
+                                  x, y, tolerancia))
                     {
                         objeto_selecionado = i;
                         break;
                     }
                 }
-
-                else if (objetos[i].forma == LINHA || objetos[i].forma == LINE_STRIP || objetos[i].forma == LINE_LOOP)
+                else if (objetos[i].forma == CIRCULO || objetos[i].forma == QUADRADO)
+                {
+                    // Para círculos e quadrados, mantemos a abordagem de distância
+                    // pois são formas fechadas que podem ser tratadas como polígonos
+                    if (pontoDentroPoligono(x, y, objetos[i]))
+                    {
+                        objeto_selecionado = i;
+                        break;
+                    }
+                }
+                else if (objetos[i].forma == LINHA)
                 {
                     for (int j = 0; j < objetos[i].num_pontos - 1; j++)
                     {
-                        float dist = distancia_ponto_segmento(
-                            x, y,
-                            objetos[i].pontos[j][0], objetos[i].pontos[j][1],
-                            objetos[i].pontos[j + 1][0], objetos[i].pontos[j + 1][1]);
-                        if (dist < 5.0f)
-                        { // tolerância
-                            objeto_selecionado = i;
-                            break;
-                        }
-                    }
-
-                    // para o LINE_LOOP, liga último ao primeiro - visualmente ele já fazia isso,
-                    // mas para o nosso objeto não então não podiamos selecionar de todos os lados
-                    if (objetos[i].forma == LINE_LOOP)
-                    {
-                        float dist = distancia_ponto_segmento(
-                            x, y,
-                            objetos[i].pontos[objetos[i].num_pontos - 1][0],
-                            objetos[i].pontos[objetos[i].num_pontos - 1][1],
-                            objetos[i].pontos[0][0],
-                            objetos[i].pontos[0][1]);
-                        if (dist < 5.0f)
+                        if (pickLinha(objetos[i].pontos[j][0], objetos[i].pontos[j][1],
+                                      objetos[i].pontos[j + 1][0], objetos[i].pontos[j + 1][1],
+                                      x, y, tolerancia))
                         {
                             objeto_selecionado = i;
                             break;
                         }
                     }
+                    if (objeto_selecionado != -1)
+                        break;
                 }
-
-                else if (objetos[i].forma == POLYGON || objetos[i].forma == TRIANGLES || objetos[i].forma == QUAD_STRIP)
+                else if (objetos[i].forma == LINE_STRIP || objetos[i].forma == LINE_LOOP)
                 {
-                    if (ponto_dentro_poligono(x, y, objetos[i]))
+                    for (int j = 0; j < objetos[i].num_pontos - 1; j++)
+                    {
+                        if (pickLinha(objetos[i].pontos[j][0], objetos[i].pontos[j][1],
+                                      objetos[i].pontos[j + 1][0], objetos[i].pontos[j + 1][1],
+                                      x, y, tolerancia))
+                        {
+                            objeto_selecionado = i;
+                            break;
+                        }
+                    }
+                    // Para LINE_LOOP, verifica também a conexão entre último e primeiro ponto
+                    if (objetos[i].forma == LINE_LOOP && objeto_selecionado == -1)
+                    {
+                        int last = objetos[i].num_pontos - 1;
+                        if (pickLinha(objetos[i].pontos[last][0], objetos[i].pontos[last][1],
+                                      objetos[i].pontos[0][0], objetos[i].pontos[0][1],
+                                      x, y, tolerancia))
+                        {
+                            objeto_selecionado = i;
+                        }
+                    }
+                    if (objeto_selecionado != -1)
+                        break;
+                }
+                else if (objetos[i].forma == POLYGON || objetos[i].forma == TRIANGLES ||
+                         objetos[i].forma == QUAD_STRIP)
+                {
+                    if (pontoDentroPoligono(x, y, objetos[i]))
                     {
                         objeto_selecionado = i;
                         break;
@@ -349,18 +345,22 @@ void keyboard(unsigned char key, int x, int y)
         glutPostRedisplay();
     }
     else if (key == 'l' || key == 'L') // Tecla 'L' para carregar
-    { 
+    {
         printf("Nome do arq: ");
         scanf("%s", nome_arq);
         strcat(nome_arq, ".txt");
         carregar_objetos(nome_arq);
         glutPostRedisplay();
     }
-    else if (key == 'a' || key == 'A') { // Tecla 'A' para iniciar/parar animação
-        if (animacao_ativa()) {
+    else if (key == 'a' || key == 'A')
+    { // Tecla 'A' para iniciar/parar animação
+        if (animacao_ativa())
+        {
             parar_animacao();
             printf("Animação parada\n");
-        } else {
+        }
+        else
+        {
             iniciar_animacao();
             printf("Animação iniciada\n");
         }
