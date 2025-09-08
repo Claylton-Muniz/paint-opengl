@@ -163,85 +163,159 @@ void cisalharY(Objeto *obj, float shy) {
     aplicarMatrizObjeto(obj, Tvolta);  // Move de volta
 }
 
-void minkowskiSum(Objeto *obj, float raio) {
-    // Verifica se o objeto é um polígono válido
-    if (obj->num_pontos < 3) {
-        return; // Não é um polígono válido
-    }
+// Calcula o produto vetorial entre dois vetores
+float crossProduct(float x1, float y1, float x2, float y2) {
+    return x1 * y2 - x2 * y1;
+}
+
+// Verifica se um polígono é convexo
+int isConvex(const Objeto *obj) {
+    if (obj->num_pontos < 3) return 1; // Pontos e linhas são considerados convexos
     
-    // Cria um novo objeto para armazenar o resultado
-    Objeto resultado;
-    resultado.forma = LINE_LOOP;
-    resultado.num_pontos = 0;
+    int n = obj->num_pontos;
+    int sign = 0;
     
-    // Para cada vértice do polígono original
-    for (int i = 0; i < obj->num_pontos; i++) {
-        int prev = (i == 0) ? obj->num_pontos - 1 : i - 1;
-        int next = (i == obj->num_pontos - 1) ? 0 : i + 1;
+    for (int i = 0; i < n; i++) {
+        float x1 = obj->pontos[i][0];
+        float y1 = obj->pontos[i][1];
+        float x2 = obj->pontos[(i+1)%n][0];
+        float y2 = obj->pontos[(i+1)%n][1];
+        float x3 = obj->pontos[(i+2)%n][0];
+        float y3 = obj->pontos[(i+2)%n][1];
         
-        // Vetores das arestas adjacentes
-        float v1x = obj->pontos[i][0] - obj->pontos[prev][0];
-        float v1y = obj->pontos[i][1] - obj->pontos[prev][1];
-        float v2x = obj->pontos[next][0] - obj->pontos[i][0];
-        float v2y = obj->pontos[next][1] - obj->pontos[i][1];
+        // Calcula os vetores
+        float dx1 = x2 - x1;
+        float dy1 = y2 - y1;
+        float dx2 = x3 - x2;
+        float dy2 = y3 - y2;
         
-        // Normaliza os vetores
-        float len1 = sqrt(v1x*v1x + v1y*v1y);
-        float len2 = sqrt(v2x*v2x + v2y*v2y);
+        // Calcula o produto vetorial
+        float cross = crossProduct(dx1, dy1, dx2, dy2);
         
-        if (len1 > 0) {
-            v1x /= len1;
-            v1y /= len1;
-        }
-        if (len2 > 0) {
-            v2x /= len2;
-            v2y /= len2;
-        }
-        
-        // Calcula as normais externas
-        float n1x = -v1y;
-        float n1y = v1x;
-        float n2x = -v2y;
-        float n2y = v2x;
-        
-        // Soma as normais para obter a direção do offset
-        float offsetX = n1x + n2x;
-        float offsetY = n1y + n2y;
-        
-        // Normaliza o vetor de offset
-        float offsetLen = sqrt(offsetX*offsetX + offsetY*offsetY);
-        if (offsetLen > 0) {
-            offsetX /= offsetLen;
-            offsetY /= offsetLen;
-        }
-        
-        // Calcula o novo vértice
-        resultado.pontos[resultado.num_pontos][0] = obj->pontos[i][0] + offsetX * raio;
-        resultado.pontos[resultado.num_pontos][1] = obj->pontos[i][1] + offsetY * raio;
-        resultado.num_pontos++;
-        
-        // Para cantos muito agudos, adiciona vértices extras para suavizar
-        float dot = n1x * n2x + n1y * n2y;
-        if (dot < 0.5f) { // Ângulo agudo
-            int num_segments = 5;
-            for (int j = 1; j < num_segments; j++) {
-                float t = (float)j / num_segments;
-                float interpX = n1x * (1-t) + n2x * t;
-                float interpY = n1y * (1-t) + n2y * t;
-                
-                float interpLen = sqrt(interpX*interpX + interpY*interpY);
-                if (interpLen > 0) {
-                    interpX /= interpLen;
-                    interpY /= interpLen;
-                }
-                
-                resultado.pontos[resultado.num_pontos][0] = obj->pontos[i][0] + interpX * raio;
-                resultado.pontos[resultado.num_pontos][1] = obj->pontos[i][1] + interpY * raio;
-                resultado.num_pontos++;
+        if (cross != 0) {
+            if (sign == 0) {
+                sign = (cross > 0) ? 1 : -1;
+            } else if (sign * cross < 0) {
+                return 0; // Não é convexo
             }
         }
     }
     
-    // Substitui o objeto original pelo resultado
-    *obj = resultado;
+    return 1; // É convexo
+}
+
+// Calcula o fecho convexo de um polígono usando o algoritmo de Graham Scan
+void convexHull(Objeto *obj) {
+    if (obj->num_pontos < 3 || isConvex(obj)) return;
+    
+    // Encontra o ponto mais abaixo e mais à esquerda
+    int min_idx = 0;
+    for (int i = 1; i < obj->num_pontos; i++) {
+        if (obj->pontos[i][1] < obj->pontos[min_idx][1] || 
+            (obj->pontos[i][1] == obj->pontos[min_idx][1] && 
+             obj->pontos[i][0] < obj->pontos[min_idx][0])) {
+            min_idx = i;
+        }
+    }
+    
+    // Troca o ponto mínimo com o primeiro ponto
+    float temp_x = obj->pontos[0][0];
+    float temp_y = obj->pontos[0][1];
+    obj->pontos[0][0] = obj->pontos[min_idx][0];
+    obj->pontos[0][1] = obj->pontos[min_idx][1];
+    obj->pontos[min_idx][0] = temp_x;
+    obj->pontos[min_idx][1] = temp_y;
+    
+    // Ordena os pontos por ângulo polar em relação ao ponto inicial
+    for (int i = 2; i < obj->num_pontos; i++) {
+        int j = i;
+        while (j > 1) {
+            float x1 = obj->pontos[j][0] - obj->pontos[0][0];
+            float y1 = obj->pontos[j][1] - obj->pontos[0][1];
+            float x2 = obj->pontos[j-1][0] - obj->pontos[0][0];
+            float y2 = obj->pontos[j-1][1] - obj->pontos[0][1];
+            
+            float cross = crossProduct(x1, y1, x2, y2);
+            
+            if (cross > 0) {
+                // Troca os pontos
+                float temp_x = obj->pontos[j][0];
+                float temp_y = obj->pontos[j][1];
+                obj->pontos[j][0] = obj->pontos[j-1][0];
+                obj->pontos[j][1] = obj->pontos[j-1][1];
+                obj->pontos[j-1][0] = temp_x;
+                obj->pontos[j-1][1] = temp_y;
+                j--;
+            } else {
+                break;
+            }
+        }
+    }
+    
+    // Construção do fecho convexo
+    Objeto hull;
+    hull.forma = obj->forma;
+    hull.num_pontos = 0;
+    
+    // Adiciona os primeiros três pontos
+    for (int i = 0; i < 3 && i < obj->num_pontos; i++) {
+        hull.pontos[hull.num_pontos][0] = obj->pontos[i][0];
+        hull.pontos[hull.num_pontos][1] = obj->pontos[i][1];
+        hull.num_pontos++;
+    }
+    
+    // Processa os pontos restantes
+    for (int i = 3; i < obj->num_pontos; i++) {
+        while (hull.num_pontos >= 2) {
+            float x1 = hull.pontos[hull.num_pontos-1][0] - hull.pontos[hull.num_pontos-2][0];
+            float y1 = hull.pontos[hull.num_pontos-1][1] - hull.pontos[hull.num_pontos-2][1];
+            float x2 = obj->pontos[i][0] - hull.pontos[hull.num_pontos-1][0];
+            float y2 = obj->pontos[i][1] - hull.pontos[hull.num_pontos-1][1];
+            
+            float cross = crossProduct(x1, y1, x2, y2);
+            
+            if (cross <= 0) {
+                // Remove o último ponto do hull
+                hull.num_pontos--;
+            } else {
+                break;
+            }
+        }
+        
+        // Adiciona o ponto atual ao hull
+        hull.pontos[hull.num_pontos][0] = obj->pontos[i][0];
+        hull.pontos[hull.num_pontos][1] = obj->pontos[i][1];
+        hull.num_pontos++;
+    }
+    
+    // Copia o hull de volta para o objeto original
+    *obj = hull;
+}
+
+// Implementação melhorada da Minkowski Sum
+void minkowskiSum(Objeto *obj, float raio) {
+    if (obj->num_pontos < 3) return;
+    
+    // Primeiro, calcula o fecho convexo do polígono
+    convexHull(obj);
+    
+    // Se já é convexo, aplica uma expansão uniforme
+    Ponto centro = calcularCentro(obj);
+    
+    for (int i = 0; i < obj->num_pontos; i++) {
+        // Calcula a direção do centro para o vértice
+        float dir_x = obj->pontos[i][0] - centro.x;
+        float dir_y = obj->pontos[i][1] - centro.y;
+        
+        // Normaliza o vetor
+        float length = sqrt(dir_x * dir_x + dir_y * dir_y);
+        if (length > 0) {
+            dir_x /= length;
+            dir_y /= length;
+        }
+        
+        // Expande o vértice na direção radial
+        obj->pontos[i][0] += dir_x * raio;
+        obj->pontos[i][1] += dir_y * raio;
+    }
 }

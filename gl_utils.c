@@ -374,7 +374,10 @@ void keyboard(unsigned char key, int x, int y)
                 (objetos[i].forma == POLYGON || objetos[i].forma == TRIANGLES ||
                  objetos[i].forma == QUAD_STRIP || objetos[i].forma == LINE_LOOP))
             {
-                minkowskiSum(&objetos[i], 10.0f); // Raio de 10 pixels
+                printf("Aplicando Minkowski Sum ao objeto %d...\n", i);
+                minkowskiSum(&objetos[i], 15.0f); // Raio de 15 pixels
+                printf("Transformação concluída. O objeto agora é %s.\n",
+                       isConvex(&objetos[i]) ? "convexo" : "ainda côncavo");
                 glutPostRedisplay();
                 break;
             }
