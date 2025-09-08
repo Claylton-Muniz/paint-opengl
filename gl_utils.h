@@ -16,7 +16,7 @@ typedef enum {
 typedef struct
 {
     Forma forma;
-    float pontos[20][2];
+    float pontos[200][2];
     int num_pontos;
     int selecionado;
 } Objeto;

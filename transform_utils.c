@@ -163,4 +163,85 @@ void cisalharY(Objeto *obj, float shy) {
     aplicarMatrizObjeto(obj, Tvolta);  // Move de volta
 }
 
-
+void minkowskiSum(Objeto *obj, float raio) {
+    // Verifica se o objeto é um polígono válido
+    if (obj->num_pontos < 3) {
+        return; // Não é um polígono válido
+    }
+    
+    // Cria um novo objeto para armazenar o resultado
+    Objeto resultado;
+    resultado.forma = LINE_LOOP;
+    resultado.num_pontos = 0;
+    
+    // Para cada vértice do polígono original
+    for (int i = 0; i < obj->num_pontos; i++) {
+        int prev = (i == 0) ? obj->num_pontos - 1 : i - 1;
+        int next = (i == obj->num_pontos - 1) ? 0 : i + 1;
+        
+        // Vetores das arestas adjacentes
+        float v1x = obj->pontos[i][0] - obj->pontos[prev][0];
+        float v1y = obj->pontos[i][1] - obj->pontos[prev][1];
+        float v2x = obj->pontos[next][0] - obj->pontos[i][0];
+        float v2y = obj->pontos[next][1] - obj->pontos[i][1];
+        
+        // Normaliza os vetores
+        float len1 = sqrt(v1x*v1x + v1y*v1y);
+        float len2 = sqrt(v2x*v2x + v2y*v2y);
+        
+        if (len1 > 0) {
+            v1x /= len1;
+            v1y /= len1;
+        }
+        if (len2 > 0) {
+            v2x /= len2;
+            v2y /= len2;
+        }
+        
+        // Calcula as normais externas
+        float n1x = -v1y;
+        float n1y = v1x;
+        float n2x = -v2y;
+        float n2y = v2x;
+        
+        // Soma as normais para obter a direção do offset
+        float offsetX = n1x + n2x;
+        float offsetY = n1y + n2y;
+        
+        // Normaliza o vetor de offset
+        float offsetLen = sqrt(offsetX*offsetX + offsetY*offsetY);
+        if (offsetLen > 0) {
+            offsetX /= offsetLen;
+            offsetY /= offsetLen;
+        }
+        
+        // Calcula o novo vértice
+        resultado.pontos[resultado.num_pontos][0] = obj->pontos[i][0] + offsetX * raio;
+        resultado.pontos[resultado.num_pontos][1] = obj->pontos[i][1] + offsetY * raio;
+        resultado.num_pontos++;
+        
+        // Para cantos muito agudos, adiciona vértices extras para suavizar
+        float dot = n1x * n2x + n1y * n2y;
+        if (dot < 0.5f) { // Ângulo agudo
+            int num_segments = 5;
+            for (int j = 1; j < num_segments; j++) {
+                float t = (float)j / num_segments;
+                float interpX = n1x * (1-t) + n2x * t;
+                float interpY = n1y * (1-t) + n2y * t;
+                
+                float interpLen = sqrt(interpX*interpX + interpY*interpY);
+                if (interpLen > 0) {
+                    interpX /= interpLen;
+                    interpY /= interpLen;
+                }
+                
+                resultado.pontos[resultado.num_pontos][0] = obj->pontos[i][0] + interpX * raio;
+                resultado.pontos[resultado.num_pontos][1] = obj->pontos[i][1] + interpY * raio;
+                resultado.num_pontos++;
+            }
+        }
+    }
+    
+    // Substitui o objeto original pelo resultado
+    *obj = resultado;
+}

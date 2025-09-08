@@ -23,4 +23,5 @@ void cisalharX(Objeto *obj, float shx);
 void cisalharY(Objeto *obj, float shy);
 void minkowskiSum(Objeto *obj, float raio);
 
+
 #endif

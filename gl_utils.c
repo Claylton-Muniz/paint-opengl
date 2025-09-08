@@ -366,6 +366,20 @@ void keyboard(unsigned char key, int x, int y)
         }
         glutPostRedisplay();
     }
+    else if (key == 'm' || key == 'M') // Tecla 'M' para Minkowski Sum
+    {
+        for (int i = 0; i < num_objetos; i++)
+        {
+            if (objetos[i].selecionado &&
+                (objetos[i].forma == POLYGON || objetos[i].forma == TRIANGLES ||
+                 objetos[i].forma == QUAD_STRIP || objetos[i].forma == LINE_LOOP))
+            {
+                minkowskiSum(&objetos[i], 10.0f); // Raio de 10 pixels
+                glutPostRedisplay();
+                break;
+            }
+        }
+    }
 }
 
 void keyboardSpecial(int key, int x, int y)
