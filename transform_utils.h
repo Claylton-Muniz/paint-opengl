@@ -21,10 +21,8 @@ void refletirY(Objeto *obj);
 void refletirOrigem(Objeto *obj);
 void cisalharX(Objeto *obj, float shx);
 void cisalharY(Objeto *obj, float shy);
-void minkowskiSum(Objeto *obj, float raio);
-float crossProduct(float x1, float y1, float x2, float y2);
-int isConvex(const Objeto *obj);
-void convexHull(Objeto *obj);
-void minkowskiSum(Objeto *obj, float raio);
+int comparePoints(const void *a, const void *b);
+void andrewConvexHull(Objeto *obj);
+void trueMinkowskiSum(Objeto *obj, float raio);
 
 #endif
