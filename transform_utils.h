@@ -24,5 +24,14 @@ void cisalharY(Objeto *obj, float shy);
 int comparePoints(const void *a, const void *b);
 float crossProduct(float x1, float y1, float x2, float y2);
 void andrewConvexHull(Objeto *obj);
+int segmentosSeIntersectam(float x1, float y1, float x2, float y2,
+                           float x3, float y3, float x4, float y4);
+int ehPoligonoConvexo(Objeto *obj);
+float calcularAreaPoligono(Objeto *obj);
+int poligonosSeIntersectam(Objeto *a, Objeto *b);
+void decomporEmTriangulos(Objeto *obj, Objeto triangulos[], int *num_triangulos);
+Objeto unirPoligonosConvexos(Objeto triangulos[], int num_triangulos);
+void transformarConcavoEmConvexo(Objeto *obj);
+
 
 #endif

@@ -374,9 +374,9 @@ void keyboard(unsigned char key, int x, int y)
                 (objetos[i].forma == POLYGON || objetos[i].forma == TRIANGLES ||
                  objetos[i].forma == QUAD_STRIP || objetos[i].forma == LINE_LOOP))
             {
-                printf("Aplicando Minkowski Sum com disco de raio %.2f...\n", 15.0);
-                andrewConvexHull(&objetos[i]);
-                printf("Minkowski Sum concluída. Resultado tem %d vértices.\n", objetos[i].num_pontos);
+                printf("Transformando polígono côncavo em convexo...\n");
+                transformarConcavoEmConvexo(&objetos[i]);
+                printf("Transformação concluída. Resultado tem %d vértices.\n", objetos[i].num_pontos);
                 glutPostRedisplay();
                 break;
             }
