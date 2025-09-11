@@ -258,194 +258,176 @@ void andrewConvexHull(Objeto *obj)
     *obj = hull;
 }
 
-// Função auxiliar para checar orientação
-int orientacao(float x1, float y1, float x2, float y2, float x3, float y3) {
-    float val = (y2 - y1) * (x3 - x2) - (x2 - x1) * (y3 - y2);
-    if (fabs(val) < 1e-6) return 0;  // colinear
-    return (val > 0) ? 1 : 2;        // 1 = horário, 2 = anti-horário
-}
-
-int segmentosSeIntersectam(float x1, float y1, float x2, float y2,
-                           float x3, float y3, float x4, float y4) {
-    int o1 = orientacao(x1, y1, x2, y2, x3, y3);
-    int o2 = orientacao(x1, y1, x2, y2, x4, y4);
-    int o3 = orientacao(x3, y3, x4, y4, x1, y1);
-    int o4 = orientacao(x3, y3, x4, y4, x2, y2);
-
-    // Caso geral
-    if (o1 != o2 && o3 != o4) return 1;
-
-    // Casos especiais (colinearidade)
-    return 0;
-}
-
-// Função para verificar se um polígono é convexo
-int ehPoligonoConvexo(Objeto *obj)
-{
-    if (obj->num_pontos < 3)
-        return 1;
-
-    int n = obj->num_pontos;
-    int sinal = 0;
-
-    for (int i = 0; i < n; i++)
-    {
-        float x1 = obj->pontos[i][0];
-        float y1 = obj->pontos[i][1];
-        float x2 = obj->pontos[(i + 1) % n][0];
-        float y2 = obj->pontos[(i + 1) % n][1];
-        float x3 = obj->pontos[(i + 2) % n][0];
-        float y3 = obj->pontos[(i + 2) % n][1];
-
-        float cross = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2);
-
-        if (cross != 0)
-        {
-            if (sinal == 0)
-            {
-                sinal = (cross > 0) ? 1 : -1;
-            }
-            else if ((cross > 0 && sinal == -1) || (cross < 0 && sinal == 1))
-            {
-                return 0; // Não convexo
+void minkowskiSum(Objeto *a, Objeto *b, Objeto *resultado) {
+    resultado->forma = LINE_LOOP;
+    resultado->num_pontos = 0;
+    
+    // Para cada ponto em A, soma com cada ponto em B
+    for (int i = 0; i < a->num_pontos; i++) {
+        for (int j = 0; j < b->num_pontos; j++) {
+            if (resultado->num_pontos < 200) {
+                resultado->pontos[resultado->num_pontos][0] = a->pontos[i][0] + b->pontos[j][0];
+                resultado->pontos[resultado->num_pontos][1] = a->pontos[i][1] + b->pontos[j][1];
+                resultado->num_pontos++;
             }
         }
     }
-
-    return 1; // Convexo
+    
+    // Calcula o fecho convexo do resultado
+    andrewConvexHull(resultado);
 }
 
-// Função para calcular a área de um polígono
-float calcularAreaPoligono(Objeto *obj)
-{
-    if (obj->num_pontos < 3)
-        return 0;
-
-    float area = 0;
-    int n = obj->num_pontos;
-
-    for (int i = 0; i < n; i++)
-    {
-        float x1 = obj->pontos[i][0];
-        float y1 = obj->pontos[i][1];
-        float x2 = obj->pontos[(i + 1) % n][0];
-        float y2 = obj->pontos[(i + 1) % n][1];
-
-        area += (x1 * y2 - x2 * y1);
-    }
-
-    return fabs(area) / 2.0f;
+// Função para verificar colisão usando soma de Minkowski
+// Dois polígonos A e B colidem se a origem está contida em A ⊕ (-B)
+int poligonosColidemMinkowski(Objeto *a, Objeto *b) {
+    // Cria -B
+    Objeto b_negativo = *b;
+    refletirOrigem(&b_negativo);
+    
+    // Calcula A ⊕ (-B)
+    Objeto minkowski;
+    minkowskiSum(a, &b_negativo, &minkowski);
+    
+    // Verifica se a origem (0,0) está dentro de A ⊕ (-B)
+    return pontoDentroPoligono(0, 0, minkowski);
 }
 
-// Função para verificar se dois polígonos se intersectam
-int poligonosSeIntersectam(Objeto *a, Objeto *b)
-{
-    // Verifica se qualquer aresta de A intersecta qualquer aresta de B
-    for (int i = 0; i < a->num_pontos; i++)
-    {
-        int next_i = (i + 1) % a->num_pontos;
-        float x1 = a->pontos[i][0], y1 = a->pontos[i][1];
-        float x2 = a->pontos[next_i][0], y2 = a->pontos[next_i][1];
-
-        for (int j = 0; j < b->num_pontos; j++)
-        {
-            int next_j = (j + 1) % b->num_pontos;
-            float x3 = b->pontos[j][0], y3 = b->pontos[j][1];
-            float x4 = b->pontos[next_j][0], y4 = b->pontos[next_j][1];
-
-            if (segmentosSeIntersectam(x1, y1, x2, y2, x3, y3, x4, y4))
-            {
-                return 1;
-            }
-        }
-    }
-
-    // Verifica se um polígono está completamente dentro do outro
-    if (pontoDentroPoligono(a->pontos[0][0], a->pontos[0][1], *b) ||
-        pontoDentroPoligono(b->pontos[0][0], b->pontos[0][1], *a))
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
-// Função para decompor polígono em triângulos (triangulação simples)
-void decomporEmTriangulos(Objeto *obj, Objeto triangulos[], int *num_triangulos)
-{
+// Função para decompor polígono em triângulos usando ear clipping
+void decomporEmTriangulosEarClipping(Objeto *obj, Objeto triangulos[], int *num_triangulos) {
     *num_triangulos = 0;
-
-    if (obj->num_pontos < 3)
-        return;
-
-    // Triangulação simples (apenas para polígonos simples)
-    for (int i = 1; i < obj->num_pontos - 1; i++)
-    {
-        if (*num_triangulos >= 50)
-            break; // Limite de segurança
-
+    
+    if (obj->num_pontos < 3) return;
+    
+    // Cria uma cópia do polígono para trabalhar
+    Objeto poligono = *obj;
+    
+    while (poligono.num_pontos > 3) {
+        int ear_found = 0;
+        
+        for (int i = 0; i < poligono.num_pontos; i++) {
+            int prev = (i - 1 + poligono.num_pontos) % poligono.num_pontos;
+            int next = (i + 1) % poligono.num_pontos;
+            
+            float x_prev = poligono.pontos[prev][0], y_prev = poligono.pontos[prev][1];
+            float x_curr = poligono.pontos[i][0], y_curr = poligono.pontos[i][1];
+            float x_next = poligono.pontos[next][0], y_next = poligono.pontos[next][1];
+            
+            // Verifica se é um ouvido
+            float cross = (x_next - x_curr) * (y_prev - y_curr) - 
+                         (y_next - y_curr) * (x_prev - x_curr);
+            
+            if (cross > 0) { // Vértice convexo
+                // Cria triângulo
+                triangulos[*num_triangulos].forma = TRIANGLES;
+                triangulos[*num_triangulos].num_pontos = 3;
+                
+                triangulos[*num_triangulos].pontos[0][0] = x_prev;
+                triangulos[*num_triangulos].pontos[0][1] = y_prev;
+                triangulos[*num_triangulos].pontos[1][0] = x_curr;
+                triangulos[*num_triangulos].pontos[1][1] = y_curr;
+                triangulos[*num_triangulos].pontos[2][0] = x_next;
+                triangulos[*num_triangulos].pontos[2][1] = y_next;
+                
+                (*num_triangulos)++;
+                
+                // Remove o vértice atual do polígono
+                for (int j = i; j < poligono.num_pontos - 1; j++) {
+                    poligono.pontos[j][0] = poligono.pontos[j + 1][0];
+                    poligono.pontos[j][1] = poligono.pontos[j + 1][1];
+                }
+                poligono.num_pontos--;
+                
+                ear_found = 1;
+                break;
+            }
+        }
+        
+        if (!ear_found) break; // Prevenção contra loop infinito
+    }
+    
+    // Adiciona o último triângulo
+    if (poligono.num_pontos == 3) {
+        triangulos[*num_triangulos] = poligono;
         triangulos[*num_triangulos].forma = TRIANGLES;
-        triangulos[*num_triangulos].num_pontos = 3;
-
-        triangulos[*num_triangulos].pontos[0][0] = obj->pontos[0][0];
-        triangulos[*num_triangulos].pontos[0][1] = obj->pontos[0][1];
-
-        triangulos[*num_triangulos].pontos[1][0] = obj->pontos[i][0];
-        triangulos[*num_triangulos].pontos[1][1] = obj->pontos[i][1];
-
-        triangulos[*num_triangulos].pontos[2][0] = obj->pontos[i + 1][0];
-        triangulos[*num_triangulos].pontos[2][1] = obj->pontos[i + 1][1];
-
         (*num_triangulos)++;
     }
 }
 
-// Função para unir polígonos convexos
-Objeto unirPoligonosConvexos(Objeto triangulos[], int num_triangulos)
-{
-    if (num_triangulos == 0)
-    {
-        Objeto vazio;
-        vazio.num_pontos = 0;
-        return vazio;
+// Função principal para transformar polígono côncavo em convexo usando Minkowski
+void transformarConcavoEmConvexo(Objeto *obj) {
+    if (obj->num_pontos < 3) return;
+       
+    // Decompor em triângulos usando ear clipping
+    Objeto triangulos[50];
+    int num_triangulos = 0;
+    decomporEmTriangulosEarClipping(obj, triangulos, &num_triangulos);
+    
+    // Identificar triângulos que colidem usando Minkowski
+    Objeto triangulosValidos[50];
+    int num_triangulosValidos = 0;
+    
+    for (int i = 0; i < num_triangulos; i++) {
+        int colide_com_outro = 0;
+        
+        // Verifica se este triângulo colide com outros triângulos
+        for (int j = 0; j < num_triangulos; j++) {
+            if (i != j && poligonosColidemMinkowski(&triangulos[i], &triangulos[j])) {
+                colide_com_outro = 1;
+                break;
+            }
+        }
+        
+        if (!colide_com_outro) {
+            triangulosValidos[num_triangulosValidos] = triangulos[i];
+            num_triangulosValidos++;
+        }
     }
-
-    if (num_triangulos == 1)
-    {
-        return triangulos[0];
+    
+    // Se todos os triângulos são válidos, usar o fecho convexo original
+    if (num_triangulosValidos == num_triangulos) {
+        andrewConvexHull(obj);
+        return;
     }
-
-    // Para simplificar, vamos pegar o fecho convexo de todos os pontos
+    
+    // Para triângulos problemáticos, ajustar posições
+    for (int i = 0; i < num_triangulos; i++) {
+        int colide = 0;
+        for (int j = 0; j < num_triangulos; j++) {
+            if (i != j && poligonosColidemMinkowski(&triangulos[i], &triangulos[j])) {
+                colide = 1;
+                break;
+            }
+        }
+        
+        if (colide) {
+            // Move ligeiramente o triângulo para evitar colisão
+            transladar(&triangulos[i], 2.0f, 2.0f);
+        }
+    }
+    
+    // Unir todos os triângulos em um polígono convexo
     Objeto todosPontos;
     todosPontos.forma = LINE_LOOP;
     todosPontos.num_pontos = 0;
-
-    // Coleta todos os pontos dos triângulos
-    for (int i = 0; i < num_triangulos; i++)
-    {
-        for (int j = 0; j < triangulos[i].num_pontos; j++)
-        {
-            if (todosPontos.num_pontos < 200)
-            {
+    
+    // Coleta todos os pontos
+    for (int i = 0; i < num_triangulos; i++) {
+        for (int j = 0; j < triangulos[i].num_pontos; j++) {
+            if (todosPontos.num_pontos < 200) {
                 todosPontos.pontos[todosPontos.num_pontos][0] = triangulos[i].pontos[j][0];
                 todosPontos.pontos[todosPontos.num_pontos][1] = triangulos[i].pontos[j][1];
                 todosPontos.num_pontos++;
             }
         }
     }
-
-    // Remove pontos duplicados (simplificado)
-    for (int i = 0; i < todosPontos.num_pontos; i++)
-    {
-        for (int j = i + 1; j < todosPontos.num_pontos; j++)
-        {
+    
+    // Remove pontos duplicados
+    for (int i = 0; i < todosPontos.num_pontos; i++) {
+        for (int j = i + 1; j < todosPontos.num_pontos; j++) {
             float dx = todosPontos.pontos[i][0] - todosPontos.pontos[j][0];
             float dy = todosPontos.pontos[i][1] - todosPontos.pontos[j][1];
-            if (dx * dx + dy * dy < 1.0f)
-            { // Tolerância pequena
-                // Remove ponto j
-                for (int k = j; k < todosPontos.num_pontos - 1; k++)
-                {
+            if (dx * dx + dy * dy < 1.0f) {
+                for (int k = j; k < todosPontos.num_pontos - 1; k++) {
                     todosPontos.pontos[k][0] = todosPontos.pontos[k + 1][0];
                     todosPontos.pontos[k][1] = todosPontos.pontos[k + 1][1];
                 }
@@ -454,81 +436,12 @@ Objeto unirPoligonosConvexos(Objeto triangulos[], int num_triangulos)
             }
         }
     }
-
-    // Calcula o fecho convexo de todos os pontos
+    
+    // Calcula o fecho convexo
     andrewConvexHull(&todosPontos);
-
-    return todosPontos;
+    
+    // Preserva o tipo original
+    Forma forma_original = obj->forma;
+    *obj = todosPontos;
+    obj->forma = forma_original;
 }
-
-// Função principal para transformar polígono côncavo em convexo
-void transformarConcavoEmConvexo(Objeto *obj)
-{
-    if (obj->num_pontos < 3)
-        return;
-
-    // Verifica se já é convexo
-    if (ehPoligonoConvexo(obj))
-    {
-        printf("Polígono já é convexo.\n");
-        return;
-    }
-
-    printf("Transformando polígono côncavo em convexo...\n");
-    printf("Polígono original tem %d vértices.\n", obj->num_pontos);
-
-    // Passo 1: Decompor em triângulos (polígonos convexos menores)
-    Objeto triangulos[50];
-    int num_triangulos = 0;
-    decomporEmTriangulos(obj, triangulos, &num_triangulos);
-
-    printf("Decomposto em %d triângulos.\n", num_triangulos);
-
-    // Passo 2: Identificar e remover triângulos problemáticos
-    Objeto triangulosValidos[50];
-    int num_triangulosValidos = 0;
-
-    for (int i = 0; i < num_triangulos; i++)
-    {
-        int problema = 0;
-
-        // Verifica se este triângulo colide com outros
-        for (int j = 0; j < num_triangulos; j++)
-        {
-            if (i != j && poligonosSeIntersectam(&triangulos[i], &triangulos[j]))
-            {
-                problema = 1;
-                break;
-            }
-        }
-
-        if (!problema)
-        {
-            triangulosValidos[num_triangulosValidos] = triangulos[i];
-            num_triangulosValidos++;
-        }
-    }
-
-    printf("Triângulos com problemas de colisão removidos: %d\n",
-           num_triangulos - num_triangulosValidos);
-
-    // Passo 3: Unir os triângulos válidos em um polígono convexo
-    if (num_triangulosValidos > 0)
-    {
-        Objeto resultado = unirPoligonosConvexos(triangulosValidos, num_triangulosValidos);
-
-        // Preserva o tipo original do objeto
-        Forma forma_original = obj->forma;
-        *obj = resultado;
-        obj->forma = forma_original;
-
-        printf("Polígono convexo resultante tem %d vértices.\n", obj->num_pontos);
-    }
-    else
-    {
-        printf("Nenhum triângulo válido encontrado. Usando fecho convexo original.\n");
-        andrewConvexHull(obj);
-    }
-}
-
-
