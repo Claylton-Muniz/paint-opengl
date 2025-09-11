@@ -188,7 +188,7 @@ void andrewConvexHull(Objeto *obj) {
     qsort(obj->pontos, obj->num_pontos, sizeof(obj->pontos[0]), comparePoints);
     
     Objeto hull;
-    hull.forma = POLYGON;
+    hull.forma = LINE_LOOP;
     hull.num_pontos = 0;
     
     // Constroi o hull inferior
@@ -232,95 +232,4 @@ void andrewConvexHull(Objeto *obj) {
     hull.num_pontos--;
     
     *obj = hull;
-}
-
-// Implementação verdadeira do Minkowski Sum com um disco
-void trueMinkowskiSum(Objeto *obj, float raio) {
-    if (obj->num_pontos < 3) return;
-    
-    // Primeiro calculamos o fecho convexo
-    andrewConvexHull(obj);
-    
-    // Para um disco, a Minkowski Sum é equivalente a "inflar" o polígono
-    // Criamos um novo objeto com vértices adicionais para representar a soma
-    
-    Objeto resultado;
-    resultado.forma = LINE_LOOP;
-    resultado.num_pontos = 0;
-    
-    int n = obj->num_pontos;
-    
-    // Para cada aresta do polígono convexo, adicionamos um arco circular
-    for (int i = 0; i < n; i++) {
-        int prev = (i == 0) ? n - 1 : i - 1;
-        int next = (i == n - 1) ? 0 : i + 1;
-        
-        // Vetores das arestas adjacentes
-        float v1x = obj->pontos[i][0] - obj->pontos[prev][0];
-        float v1y = obj->pontos[i][1] - obj->pontos[prev][1];
-        float v2x = obj->pontos[next][0] - obj->pontos[i][0];
-        float v2y = obj->pontos[next][1] - obj->pontos[i][1];
-        
-        // Normaliza os vetores
-        float len1 = sqrt(v1x*v1x + v1y*v1y);
-        float len2 = sqrt(v2x*v2x + v2y*v2y);
-        
-        if (len1 > 0) {
-            v1x /= len1;
-            v1y /= len1;
-        }
-        if (len2 > 0) {
-            v2x /= len2;
-            v2y /= len2;
-        }
-        
-        // Calcula as normais externas
-        float n1x = -v1y;
-        float n1y = v1x;
-        float n2x = -v2y;
-        float n2y = v2x;
-        
-        // Calcula a bissetriz (soma das normais)
-        float bisx = n1x + n2x;
-        float bisy = n1y + n2y;
-        
-        // Normaliza a bissetriz
-        float len_bis = sqrt(bisx*bisx + bisy*bisy);
-        if (len_bis > 0) {
-            bisx /= len_bis;
-            bisy /= len_bis;
-        }
-        
-        // Calcula o fator de escala para a bissetriz
-        float dot = n1x * bisx + n1y * bisy;
-        float scale = (dot != 0) ? raio / dot : raio;
-        
-        // Adiciona o vértice expandido
-        resultado.pontos[resultado.num_pontos][0] = obj->pontos[i][0] + bisx * scale;
-        resultado.pontos[resultado.num_pontos][1] = obj->pontos[i][1] + bisy * scale;
-        resultado.num_pontos++;
-        
-        // Para cantos, adiciona pontos extras para suavizar a curva
-        float angle = acos(n1x * n2x + n1y * n2y);
-        if (angle < 2.8) { // Ângulo agudo (aproximadamente 160 graus)
-            int segments = 5;
-            for (int j = 1; j < segments; j++) {
-                float t = (float)j / segments;
-                float interp_x = n1x * (1-t) + n2x * t;
-                float interp_y = n1y * (1-t) + n2y * t;
-                
-                float len_interp = sqrt(interp_x*interp_x + interp_y*interp_y);
-                if (len_interp > 0) {
-                    interp_x /= len_interp;
-                    interp_y /= len_interp;
-                }
-                
-                resultado.pontos[resultado.num_pontos][0] = obj->pontos[i][0] + interp_x * raio;
-                resultado.pontos[resultado.num_pontos][1] = obj->pontos[i][1] + interp_y * raio;
-                resultado.num_pontos++;
-            }
-        }
-    }
-    
-    *obj = resultado;
 }

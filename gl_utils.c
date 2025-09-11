@@ -375,7 +375,7 @@ void keyboard(unsigned char key, int x, int y)
                  objetos[i].forma == QUAD_STRIP || objetos[i].forma == LINE_LOOP))
             {
                 printf("Aplicando Minkowski Sum com disco de raio %.2f...\n", 15.0);
-                trueMinkowskiSum(&objetos[i], 15.0f);
+                andrewConvexHull(&objetos[i]);
                 printf("Minkowski Sum concluída. Resultado tem %d vértices.\n", objetos[i].num_pontos);
                 glutPostRedisplay();
                 break;
